@@ -12,6 +12,22 @@ App is built with React + TypeScript + Vite.
     npm run dev
     ```
 
+## Build and push the docker image locally
+
+1. Build image
+
+  ```sh
+  podman build --no-cache --platform linux/amd64 -t de.icr.io/mace2/resources-viewer:latest .
+  ```
+
+  > Warning: Code Engine only supports amd64 architecture.
+
+1. Push the image
+
+  ```sh
+  podman push de.icr.io/mace2/resources-viewer:latest
+  ```
+
 ## Build and Deploy the app in Code Engine 
 
 1. Create a Code Engine project
@@ -31,6 +47,28 @@ App is built with React + TypeScript + Vite.
     ```sh
     ibmcloud ce registry create --name icr-access --server de.icr.io --username iamapikey --password $API_KEY
     ```
+
+1. Create the serverless app
+
+  ```sh
+  ibmcloud ce application create --name resources-viewer \
+    --image de.icr.io/mace2/resources-viewer:amd64 \
+    --port 8080 \
+    --cpu 0.125 \
+    --memory 250M \
+    --min-scale 1 \
+    --max-scale 1 \
+    --registry-secret icr-access
+  ```
+
+1. After deployment, you can check the application status
+
+    ```ssh
+    ibmcloud ce application get -n resources-viewer
+    ```
+
+
+## Backup
 
 1. Let's use Code Engine's build feature to handle the cross-architecture compilation directly in the cloud.
 
@@ -60,8 +98,6 @@ App is built with React + TypeScript + Vite.
     ibmcloud ce application get -n resources-viewer
     ```
 
-## Update Code Engine
-
 1. Update the build
 
     ```sh
@@ -73,30 +109,3 @@ App is built with React + TypeScript + Vite.
     ```sh
     ibmcloud ce revision logs -n resources-viewer-00002
     ```
-
-## Local build
-
-1. Build image
-
-  ```sh
-  podman build --no-cache --platform linux/amd64 -t de.icr.io/mace2/resources-viewer:latest .
-  ```
-
-1. Push the image
-
-  ```sh
-  podman push de.icr.io/mace2/resources-viewer:latest
-  ```
-
-1. Create app
-
-  ```sh
-  ibmcloud ce application create --name resources-viewer \
-    --image de.icr.io/mace2/resources-viewer:amd64 \
-    --port 8080 \
-    --cpu 0.125 \
-    --memory 250M \
-    --min-scale 1 \
-    --max-scale 1 \
-    --registry-secret icr-access
-  ```
