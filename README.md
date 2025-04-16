@@ -50,16 +50,16 @@ App is built with React + TypeScript + Vite.
 
 1. Create the serverless app
 
-  ```sh
-  ibmcloud ce application create --name resources-viewer \
-    --image de.icr.io/mace2/resources-viewer:amd64 \
-    --port 8080 \
-    --cpu 0.125 \
-    --memory 250M \
-    --min-scale 1 \
-    --max-scale 1 \
-    --registry-secret icr-access
-  ```
+    ```sh
+    ibmcloud ce application create --name resources-viewer \
+      --image de.icr.io/mace2/resources-viewer:latest \
+      --port 8080 \
+      --cpu 0.125 \
+      --memory 250M \
+      --min-scale 1 \
+      --max-scale 1 \
+      --registry-secret icr-access
+    ```
 
 1. After deployment, you can check the application status
 
