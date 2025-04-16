@@ -1,0 +1,133 @@
+{
+    "limit": 100,
+    "total_count": 4,
+    "first": {
+        "href": "https://eu-de.apprapp.cloud.ibm.com/apprapp/config_aggregator/v1/instances/e27c1acc-eaa9-42c3-85c2-b30831a59c39/configs?limit=100"
+    },
+    "configs": [
+        {
+            "about": {
+                "access_tags": [],
+                "account_id": "3a4ef740c2d607b1331738faf667de76",
+                "config_type": "instance",
+                "last_config_refresh_time": "2025-04-15T20:33:44Z",
+                "location": "eu-de-3",
+                "resource_crn": "crn:v1:bluemix:public:is:eu-de-3:a/3a4ef740c2d607b1331738faf667de76::instance:02d7_43f05bc3-7e36-4bbe-a88d-173f83ade9b6",
+                "resource_group_id": "438b802f75874f69b7a7abeb8d5269e4",
+                "resource_name": "billingcognos",
+                "service_name": "is.instance",
+                "service_tags": [],
+                "user_tags": []
+            },
+            "config": {
+                "all_network_interfaces_sg_found": true,
+                "allow_ip_spoofing": false,
+                "cbr_check_enforced": "cbr",
+                "cbr_enabled": false,
+                "cbr_private_public_allowed_ip_list": [],
+                "count_sg_network_interfaces": 1,
+                "default_cbr_mfa_enabled": "OFF",
+                "default_netmask_bits_length": 256,
+                "endpoints_restricted": false,
+                "floating_ip_found": true,
+                "max_netmask_bits_length": 0,
+                "network_interfaces_sg_found": true,
+                "public_endpoints_mfa_enabled": "OFF",
+                "resource_id": "02d7_43f05bc3-7e36-4bbe-a88d-173f83ade9b6",
+                "resource_name": "billingcognos",
+                "restricts_private_endpoints": false,
+                "vm_image_name": "ibm-windows-server-2022-full-standard-amd64-16",
+                "vpc_id": "r010-38f27614-a821-4604-848b-4f04fd1460c9",
+                "wild_card_in_private_list": false,
+                "wild_card_in_public_list": false
+            },
+            "config_v2": {}
+        },
+        {
+            "about": {
+                "access_tags": [],
+                "account_id": "3a4ef740c2d607b1331738faf667de76",
+                "config_type": "volume",
+                "last_config_refresh_time": "2025-04-15T20:33:44Z",
+                "location": "eu-de-3",
+                "resource_crn": "crn:v1:bluemix:public:is:eu-de-3:a/3a4ef740c2d607b1331738faf667de76::instance_volume:02d7_43f05bc3-7e36-4bbe-a88d-173f83ade9b6_r010-e58d88f9-1c13-4ddc-93e9-897ab3cef632",
+                "resource_group_id": "438b802f75874f69b7a7abeb8d5269e4",
+                "resource_name": "",
+                "service_name": "is.instance",
+                "service_tags": [],
+                "user_tags": []
+            },
+            "config": {
+                "cbr_enabled": false,
+                "resource_id": "02d7_43f05bc3-7e36-4bbe-a88d-173f83ade9b6",
+                "volume_encryption": "provider_managed",
+                "volume_encryption_key_crn": "",
+                "volume_type": "boot",
+                "vpc_id": "r010-38f27614-a821-4604-848b-4f04fd1460c9"
+            },
+            "config_v2": {}
+        },
+        {
+            "about": {
+                "access_tags": [],
+                "account_id": "3a4ef740c2d607b1331738faf667de76",
+                "config_type": "instance",
+                "last_config_refresh_time": "2025-04-15T20:33:28Z",
+                "location": "eu-de-2",
+                "resource_crn": "crn:v1:bluemix:public:is:eu-de-2:a/3a4ef740c2d607b1331738faf667de76::instance:02c7_4838ec5d-7075-414b-aa43-b705d0e39fd1",
+                "resource_group_id": "768fdf7e87f44ab2bfec4e6b910f1cfb",
+                "resource_name": "fq-datastage",
+                "service_name": "is.instance",
+                "service_tags": [],
+                "user_tags": []
+            },
+            "config": {
+                "all_network_interfaces_sg_found": true,
+                "allow_ip_spoofing": false,
+                "cbr_check_enforced": "cbr",
+                "cbr_enabled": false,
+                "cbr_private_public_allowed_ip_list": [],
+                "count_sg_network_interfaces": 1,
+                "default_cbr_mfa_enabled": "OFF",
+                "default_netmask_bits_length": 256,
+                "endpoints_restricted": false,
+                "floating_ip_found": true,
+                "max_netmask_bits_length": 0,
+                "network_interfaces_sg_found": true,
+                "public_endpoints_mfa_enabled": "OFF",
+                "resource_id": "02c7_4838ec5d-7075-414b-aa43-b705d0e39fd1",
+                "resource_name": "fq-datastage",
+                "restricts_private_endpoints": false,
+                "vm_image_name": "ibm-redhat-9-4-minimal-amd64-5",
+                "vpc_id": "r010-3961aa14-c59a-420a-8cbb-d2c27a304f1f",
+                "wild_card_in_private_list": false,
+                "wild_card_in_public_list": false
+            },
+            "config_v2": {}
+        },
+        {
+            "about": {
+                "access_tags": [],
+                "account_id": "3a4ef740c2d607b1331738faf667de76",
+                "config_type": "volume",
+                "last_config_refresh_time": "2025-04-15T20:33:28Z",
+                "location": "eu-de-2",
+                "resource_crn": "crn:v1:bluemix:public:is:eu-de-2:a/3a4ef740c2d607b1331738faf667de76::instance_volume:02c7_4838ec5d-7075-414b-aa43-b705d0e39fd1_r010-80bddfd4-db50-43dd-9692-472831142df0",
+                "resource_group_id": "768fdf7e87f44ab2bfec4e6b910f1cfb",
+                "resource_name": "",
+                "service_name": "is.instance",
+                "service_tags": [],
+                "user_tags": []
+            },
+            "config": {
+                "cbr_enabled": false,
+                "resource_id": "02c7_4838ec5d-7075-414b-aa43-b705d0e39fd1",
+                "volume_encryption": "provider_managed",
+                "volume_encryption_key_crn": "",
+                "volume_type": "boot",
+                "vpc_id": "r010-3961aa14-c59a-420a-8cbb-d2c27a304f1f"
+            },
+            "config_v2": {}
+        }
+    ]
+}

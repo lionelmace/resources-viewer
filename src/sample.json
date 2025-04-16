@@ -1,0 +1,30 @@
+{
+  "company": "Example Corp",
+  "employees": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "position": "Software Engineer",
+      "skills": ["JavaScript", "React", "Node.js"],
+      "contact": {
+        "email": "john@example.com",
+        "phone": "+1-555-123-4567"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Jane Smith",
+      "position": "Product Manager",
+      "skills": ["Strategy", "Agile", "Leadership"],
+      "contact": {
+        "email": "jane@example.com",
+        "phone": "+1-555-987-6543"
+      }
+    }
+  ],
+  "department": "Technology",
+  "location": {
+    "city": "San Francisco",
+    "country": "USA"
+  }
+} 
