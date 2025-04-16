@@ -1,6 +1,5 @@
 # Build stage
-# FROM node:20-alpine AS build
-FROM --platform=linux/amd64 node:20-alpine AS build
+FROM node:20-slim AS build
 
 # Set working directory
 WORKDIR /app
@@ -8,8 +7,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Install dependencies with increased memory for node
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Install dependencies
-RUN npm install
+RUN npm ci --no-audit --network-timeout 300000
 
 # Copy source code
 COPY . .
@@ -18,8 +20,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-# FROM nginx:alpine
-FROM --platform=linux/amd64 nginx:alpine
+FROM nginx:alpine
 
 # Copy built assets from build stage
 COPY --from=build /app/dist /usr/share/nginx/html

@@ -2,6 +2,16 @@
 
 App is built with React + TypeScript + Vite.
 
+![Web Application Screenshot](src/assets/webapp.png)
+
+## Run the app locally
+
+1. Run it!
+
+    ```sh
+    npm run dev
+    ```
+
 ## Build and Deploy the app in Code Engine 
 
 1. Create a Code Engine project
@@ -30,7 +40,7 @@ App is built with React + TypeScript + Vite.
       --source https://github.com/lionelmace/resources-viewer.git \
       --strategy dockerfile \
       --size medium \
-      --image de.icr.io/mace2/resources-viewer:latest \
+      --image de.icr.io/mace2/resources-viewer:amd64 \
       --registry-secret icr-access
     ```
 
@@ -39,7 +49,7 @@ App is built with React + TypeScript + Vite.
     ```sh
     ibmcloud ce application create \
       --name resources-viewer \
-      --image de.icr.io/mace2/resources-viewer:latest \
+      --image de.icr.io/mace2/resources-viewer:amd64 \
       --registry-secret icr-access \
       --port 3000
     ```
@@ -50,12 +60,26 @@ App is built with React + TypeScript + Vite.
     ibmcloud ce application get -n resources-viewer
     ```
 
+## Update Code Engine
+
+1. Update the build
+
+    ```sh
+    ic ce build update --name resources-viewer-build
+    ```
+
+1. View logs of the revision
+
+    ```sh
+    ibmcloud ce revision logs -n resources-viewer-00002
+    ```
+
 ## Local build
 
 1. Build image
 
   ```sh
-  podman build --platform linux/arm64 -t de.icr.io/mace2/resources-viewer:latest .
+  podman build --no-cache --platform linux/amd64 -t de.icr.io/mace2/resources-viewer:latest .
   ```
 
 1. Push the image
@@ -64,10 +88,11 @@ App is built with React + TypeScript + Vite.
   podman push de.icr.io/mace2/resources-viewer:latest
   ```
 
-1. Skip this step
+1. Create app
+
   ```sh
   ibmcloud ce application create --name resources-viewer \
-    --image de.icr.io/mace2/resources-viewer:latest \
+    --image de.icr.io/mace2/resources-viewer:amd64 \
     --port 8080 \
     --cpu 0.125 \
     --memory 250M \
@@ -75,5 +100,3 @@ App is built with React + TypeScript + Vite.
     --max-scale 1 \
     --registry-secret icr-access
   ```
-
-  Output: "exec /docker-entrypoint.sh: exec format error"
