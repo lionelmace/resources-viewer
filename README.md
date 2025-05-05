@@ -22,13 +22,20 @@ App is built with React + TypeScript + Vite.
 
   > Warning: Code Engine only supports amd64 architecture.
 
+1. Login to IBM Cloud Container registry
+
+  ```sh
+  ibmcloud login
+  ibmcloud cr login
+  ```
+
 1. Push the image
 
   ```sh
   podman push de.icr.io/mace2/resources-viewer:latest
   ```
 
-## Build and Deploy the app in Code Engine 
+## Build and Deploy the app in Code Engine
 
 1. Create a Code Engine project
 
@@ -67,6 +74,13 @@ App is built with React + TypeScript + Vite.
     ibmcloud ce application get -n resources-viewer
     ```
 
+## Update an existing app with a new docker image in Code Engine
+
+1. To update an existing IBM Cloud Code Engine application with a new image
+
+    ```ssh
+    ibmcloud ce application update --name resources-viewer --image de.icr.io/mace2/resources-viewer:latest
+    ```
 
 ## Backup
 

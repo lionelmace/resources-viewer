@@ -12,6 +12,8 @@ interface VSIConfig {
     resource_id: string;
     vm_image_name?: string;
     vpc_id: string;
+    created_at?: string;
+    account_id?: string; // Added account_id
   };
 }
 
@@ -44,12 +46,19 @@ function App() {
   const [selectedService, setSelectedService] = useState<string>(serviceOptions[0].value);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load default data when component mounts
   useEffect(() => {
     loadDefaultData();
   }, []);
+
+  useEffect(() => {
+    if (configGuid && apiKey) {
+      loadFromAPI();
+    }
+  }, [selectedService]);
 
   const loadDefaultData = async () => {
     try {
@@ -86,7 +95,7 @@ function App() {
   const getIAMToken = async (apiKey: string): Promise<string> => {
     try {
       console.log('Getting IAM token...');
-      const response = await fetch('/iam/identity/token', {
+      const response = await fetch('https://iam.cloud.ibm.com/identity/token', { // Updated to use full URL
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -109,6 +118,9 @@ function App() {
       return data.access_token;
     } catch (error) {
       console.error('Detailed IAM token error:', error);
+      if (error instanceof TypeError) {
+        console.error('This might be a network issue or an invalid endpoint.');
+      }
       throw new Error(`IAM token error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -121,16 +133,14 @@ function App() {
 
     setIsLoading(true);
     setErrorMessage('');
+    setSuccessMessage('');
 
     try {
-      // First get the IAM token
       console.log('Starting API call process...');
       const token = await getIAMToken(apiKey);
       console.log('Token received, calling API...');
 
-      // Then use the token to get data
-      const url = `/api/apprapp/config_aggregator/v1/instances/${configGuid}/configs?service_name=${selectedService}`;
-      
+      const url = `https://eu-de.apprapp.cloud.ibm.com/apprapp/config_aggregator/v1/instances/${configGuid}/configs?service_name=${selectedService}`; // Updated to use full URL
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -150,6 +160,7 @@ function App() {
       console.log('Data received successfully');
       setVsiData(data);
       setErrorMessage('');
+      setSuccessMessage('API loaded successfully!');
     } catch (error) {
       console.error('Detailed API error:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
@@ -214,6 +225,16 @@ function App() {
             {isLoading ? 'Loading...' : 'Load from API'}
           </button>
         </div>
+        {errorMessage && (
+          <div className="error-message">
+            {errorMessage}
+          </div>
+        )}
+        {successMessage && (
+          <div className="success-message">
+            {successMessage}
+          </div>
+        )}
         <div className="filter-group">
           <label htmlFor="service-select">Filter by service:</label>
           <select
@@ -229,11 +250,6 @@ function App() {
             ))}
           </select>
         </div>
-        {errorMessage && (
-          <div className="error-message">
-            {errorMessage}
-          </div>
-        )}
       </div>
       
       <div className="table-container">
@@ -241,11 +257,14 @@ function App() {
           <table className="vsi-table">
             <thead>
               <tr>
+                <th>Account ID</th> {/* New column */}
                 <th>Name</th>
-                <th>Location</th>
+                <th>AZ</th>
                 <th>Type</th>
                 <th>Resource ID</th>
                 <th>Image Name</th>
+                <th>Profile</th>
+                <th>Number of Volume</th> {/* New column */}
               </tr>
             </thead>
             <tbody>
@@ -253,11 +272,14 @@ function App() {
                 .filter(config => config.about.config_type === 'instance')
                 .map((config, index) => (
                   <tr key={index}>
+                    <td>{config.about.account_id || 'N/A'}</td> {/* New column for account_id */}
                     <td>{config.about.resource_name || 'N/A'}</td>
-                    <td>{config.about.location}</td>
+                    <td>{config.config_v2.zone}</td>
                     <td>{config.about.config_type}</td>
                     <td>{config.config.resource_id}</td>
                     <td>{config.config.vm_image_name || 'N/A'}</td>
+                    <td>{config.config_v2.profile || 'N/A'}</td>
+                    <td>{config.config_v2?.boot_volume?.length || 0}</td> {/* Display boot_volume count */}
                   </tr>
                 ))}
             </tbody>
