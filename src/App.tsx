@@ -95,7 +95,7 @@ function App() {
   const getIAMToken = async (apiKey: string): Promise<string> => {
     try {
       console.log('Getting IAM token...');
-      const response = await fetch('https://iam.cloud.ibm.com/identity/token', { // Updated to use full URL
+      const response = await fetch('/iam/identity/token', { // Updated to use full URL
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -140,7 +140,7 @@ function App() {
       const token = await getIAMToken(apiKey);
       console.log('Token received, calling API...');
 
-      const url = `https://eu-de.apprapp.cloud.ibm.com/apprapp/config_aggregator/v1/instances/${configGuid}/configs?service_name=${selectedService}`; // Updated to use full URL
+      const url = `/api/apprapp/config_aggregator/v1/instances/${configGuid}/configs?service_name=${selectedService}`; // Updated to use full URL
       const response = await fetch(url, {
         method: 'GET',
         headers: {
