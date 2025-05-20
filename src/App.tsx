@@ -7,13 +7,19 @@ interface VSIConfig {
     location: string;
     resource_name: string;
     config_type: string;
+    account_id?: string;
+    service_name?: string;
   };
   config: {
     resource_id: string;
     vm_image_name?: string;
     vpc_id: string;
     created_at?: string;
-    account_id?: string; // Added account_id
+  };
+  config_v2?: {
+    zone?: string;
+    profile?: string;
+    boot_volume?: unknown[];
   };
 }
 
@@ -35,6 +41,7 @@ interface ServiceOption {
 }
 
 const serviceOptions: ServiceOption[] = [
+  { value: 'all', label: 'All resources' },
   { value: 'is.instance', label: 'Virtual Server Instances' },
   { value: 'containers-kubernetes', label: 'Kubernetes Clusters' }
 ];
@@ -56,9 +63,11 @@ function App() {
 
   useEffect(() => {
     if (configGuid && apiKey) {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       loadFromAPI();
     }
-  }, [selectedService]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedService, configGuid, apiKey]);
 
   const loadDefaultData = async () => {
     try {
@@ -83,7 +92,7 @@ function App() {
         const parsedJson = JSON.parse(content);
         setVsiData(parsedJson);
         setErrorMessage('');
-      } catch (error) {
+      } catch {
         setErrorMessage('Invalid JSON file format');
         // Reload default data if there's an error
         loadDefaultData();
@@ -95,7 +104,7 @@ function App() {
   const getIAMToken = async (apiKey: string): Promise<string> => {
     try {
       console.log('Getting IAM token...');
-      const response = await fetch('/iam/identity/token', { // Updated to use full URL
+      const response = await fetch('/iam/identity/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -140,7 +149,11 @@ function App() {
       const token = await getIAMToken(apiKey);
       console.log('Token received, calling API...');
 
-      const url = `/api/apprapp/config_aggregator/v1/instances/${configGuid}/configs?service_name=${selectedService}`; // Updated to use full URL
+      // Build API URL
+      let url = `/api/apprapp/config_aggregator/v1/instances/${configGuid}/configs`;
+      if (selectedService !== 'all') {
+        url += `?service_name=${selectedService}`;
+      }
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -186,18 +199,6 @@ function App() {
             ref={fileInputRef}
             style={{ display: 'none' }}
           />
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="upload-button"
-          >
-            Upload JSON File
-          </button>
-          <button 
-            onClick={loadDefaultData}
-            className="default-button"
-          >
-            Load JSON Sample
-          </button>
         </div>
       </div>
 
@@ -205,54 +206,66 @@ function App() {
         <div className="input-group">
           <input
             type="text"
-            placeholder="Enter the App Configuration GUID"
+            placeholder="App Configuration GUID"
             value={configGuid}
             onChange={(e) => setConfigGuid(e.target.value)}
             className="api-input"
           />
           <input
             type="password"
-            placeholder="Enter IBM Cloud API Key"
+            placeholder="IBM Cloud API Key"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             className="api-input"
           />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <button 
+              onClick={loadFromAPI}
+              className="api-button"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Loading...' : 'Load from API'}
+            </button>
+          </div>
           <button 
-            onClick={loadFromAPI}
-            className="api-button"
-            disabled={isLoading}
+            onClick={loadDefaultData}
+            className="default-button"
           >
-            {isLoading ? 'Loading...' : 'Load from API'}
+            Load JSON Sample
           </button>
         </div>
-        {errorMessage && (
-          <div className="error-message">
-            {errorMessage}
+        <div className="filter-api-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 }}>
+          <div className="filter-group" style={{ marginBottom: 0, display: 'flex', alignItems: 'center' }}>
+            <label htmlFor="service-select" style={{ marginRight: 8 }}>Filter by service:</label>
+            <select
+              id="service-select"
+              value={selectedService}
+              onChange={(e) => setSelectedService(e.target.value)}
+              className="service-select"
+            >
+              {serviceOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
-        {successMessage && (
-          <div className="success-message">
-            {successMessage}
+          <div style={{ minWidth: 220, marginLeft: 24, display: 'flex', alignItems: 'center', height: '32px' }}>
+            {errorMessage && (
+              <div className="error-message" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                {errorMessage}
+              </div>
+            )}
+            {successMessage && (
+              <div className="success-message" style={{ margin: 0, whiteSpace: 'nowrap' }}>
+                {successMessage}
+              </div>
+            )}
           </div>
-        )}
-        <div className="filter-group">
-          <label htmlFor="service-select">Filter by service:</label>
-          <select
-            id="service-select"
-            value={selectedService}
-            onChange={(e) => setSelectedService(e.target.value)}
-            className="service-select"
-          >
-            {serviceOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
       
-      <div className="table-container">
+      <div className="table-container" style={{ maxHeight: '480px', overflowY: 'auto', overflowX: 'auto' }}>
         {vsiData ? (
           <table className="vsi-table">
             <thead>
@@ -269,17 +282,18 @@ function App() {
             </thead>
             <tbody>
               {vsiData.configs
+                .filter(config => selectedService === 'all' || config.about.service_name === selectedService)
                 .filter(config => config.about.config_type === 'instance')
                 .map((config, index) => (
                   <tr key={index}>
-                    <td>{config.about.account_id || 'N/A'}</td> {/* New column for account_id */}
+                    <td>{config.about.account_id || 'N/A'}</td>
                     <td>{config.about.resource_name || 'N/A'}</td>
-                    <td>{config.config_v2.zone}</td>
+                    <td>{config.config_v2?.zone || 'N/A'}</td>
                     <td>{config.about.config_type}</td>
                     <td>{config.config.resource_id}</td>
                     <td>{config.config.vm_image_name || 'N/A'}</td>
-                    <td>{config.config_v2.profile || 'N/A'}</td>
-                    <td>{config.config_v2?.boot_volume?.length || 0}</td> {/* Display boot_volume count */}
+                    <td>{config.config_v2?.profile || 'N/A'}</td>
+                    <td>{config.config_v2?.boot_volume?.length || 0}</td>
                   </tr>
                 ))}
             </tbody>
