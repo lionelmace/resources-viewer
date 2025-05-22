@@ -266,40 +266,52 @@ function App() {
       </div>
       
       <div className="table-container" style={{ maxHeight: '480px', overflowY: 'auto', overflowX: 'auto' }}>
-        {vsiData ? (
+        {vsiData && Array.isArray(vsiData.configs) && vsiData.configs.length > 0 ? (
           <table className="vsi-table">
             <thead>
               <tr>
-                <th>Account ID</th> {/* New column */}
+                {/* <th>Account ID</th> removed */}
+                <th>Service Name</th>
                 <th>Name</th>
                 <th>AZ</th>
-                <th>Type</th>
                 <th>Resource ID</th>
                 <th>Image Name</th>
                 <th>Profile</th>
-                <th>Number of Volume</th> {/* New column */}
+                <th>Number of Volume</th>
               </tr>
             </thead>
             <tbody>
               {vsiData.configs
-                .filter(config => selectedService === 'all' || config.about.service_name === selectedService)
-                .filter(config => config.about.config_type === 'instance')
+                .filter(config =>
+                  selectedService === 'all'
+                    ? true
+                    : config.about.service_name === selectedService
+                )
+                .filter(config =>
+                  selectedService === 'all'
+                    ? true
+                    : config.about.config_type === 'instance'
+                )
                 .map((config, index) => (
                   <tr key={index}>
-                    <td>{config.about.account_id || 'N/A'}</td>
+                    {/* <td>{config.about.account_id || 'N/A'}</td> removed */}
+                    <td>
+                      {config.config?.service_name ||
+                       config.about.service_name ||
+                       'N/A'}
+                    </td>
                     <td>{config.about.resource_name || 'N/A'}</td>
                     <td>{config.config_v2?.zone || 'N/A'}</td>
-                    <td>{config.about.config_type}</td>
-                    <td>{config.config.resource_id}</td>
-                    <td>{config.config.vm_image_name || 'N/A'}</td>
+                    <td>{config.config?.resource_id || 'N/A'}</td>
+                    <td>{config.config?.vm_image_name || 'N/A'}</td>
                     <td>{config.config_v2?.profile || 'N/A'}</td>
-                    <td>{config.config_v2?.boot_volume?.length || 0}</td>
+                    <td>{Array.isArray(config.config_v2?.boot_volume) ? config.config_v2.boot_volume.length : 0}</td>
                   </tr>
                 ))}
             </tbody>
           </table>
         ) : (
-          <p>Loading data...</p>
+          <p>No data available.</p>
         )}
       </div>
     </div>
