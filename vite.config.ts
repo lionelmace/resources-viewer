@@ -17,6 +17,12 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
         secure: false
+      },
+      '/resources': {
+        target: 'https://resource-controller.cloud.ibm.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/resources/, ''),
+        secure: false
       }
     }
   }
