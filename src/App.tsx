@@ -15,6 +15,7 @@ interface VSIConfig {
     vm_image_name?: string;
     vpc_id: string;
     created_at?: string;
+    resource_group_id?: string;
   };
   config_v2?: {
     zone?: string;
@@ -57,8 +58,10 @@ interface VSIConfigResponse {
 
 const serviceOptions: ServiceOption[] = [
   { value: 'all', label: 'All resources' },
-  { value: 'is.instance', label: 'Virtual Server Instances' },
-  { value: 'containers-kubernetes', label: 'Kubernetes Clusters' }
+  { value: 'is.instance', label: 'VSI' },
+  { value: 'containers-kubernetes', label: 'Clusters' },
+  { value: 'databases-for-postgresql', label: 'ICD Postgres' },
+  { value: 'databases-for-mongodb', label: 'ICD Mongo' }
 ];
 
 function App() {
@@ -73,13 +76,14 @@ function App() {
   const [resourceGroups, setResourceGroups] = useState<ResourceGroup[]>([]);
   const [vsiConfigs, setVsiConfigs] = useState<{ [key: string]: VSIConfig }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [lastApiOutput, setLastApiOutput] = useState<any>(null);
 
   // Load default data when component mounts
-  useEffect(() => {
-    if (configGuid && apiKey) {
-      loadFromAPI();
-    }
-  }, [selectedService, configGuid, apiKey]);
+  // useEffect(() => {
+  //   if (configGuid && apiKey) {
+  //     loadFromAPI();
+  //   }
+  // }, [selectedService, configGuid, apiKey]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -132,38 +136,10 @@ function App() {
     }
   };
 
-  const getResourceGroups = async (token: string): Promise<ResourceGroup[]> => {
-    try {
-      const url = '/resources/v2/resource_groups';
-      console.log('Fetching resource groups from:', url);
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Resource groups error response:', errorText);
-        throw new Error(`Resource groups API error: ${response.status} - ${errorText}`);
-      }
-
-      const data: ResourceGroupsResponse = await response.json();
-      console.log('Resource groups loaded:', data.resources?.length ?? 0);
-      return data.resources || [];
-    } catch (error) {
-      console.error('Resource groups fetch error:', error);
-      throw error;
-    }
-  };
-
   const getVSIConfig = async (token: string, crn: string): Promise<VSIConfig | null> => {
     try {
-      const url = `/api/apprapp/config_aggregator/v1/instances/${configGuid}/configs?resource_crn=${encodeURIComponent(crn)}`;
-      console.log('Fetching VSI config from:', url);
+      const url = `/api/apprapp/config_aggregator/v1/instances/${configGuid}/configs?service_name=is.instance&config_type=instance`;
+      console.log('Fetching VSI configs from:', url);
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -198,57 +174,12 @@ function App() {
     setSuccessMessage('');
 
     try {
-      // First, get all resource groups
-      const groups = await getResourceGroups(token);
-      setResourceGroups(groups);
-      
-      // Then, fetch resources for each group
-      const allResources = [];
-      const vsiConfigsMap: { [key: string]: VSIConfig } = {};
-      
-      for (const group of groups) {
-        const url = `/resources/v2/resource_instances?resource_group_id=${group.id}`;
-        console.log(`Fetching resources for group ${group.name} from:`, url);
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Resource instances error response for group ${group.name}:`, errorText);
-          continue;
-        }
-
-        const data = await response.json();
-        const resources = data.resources || [];
-        
-        // Add resource group name to each resource
-        resources.forEach((resource: any) => {
-          resource.resource_group_name = group.name;
-        });
-        
-        // For VSI resources, fetch their config
-        for (const resource of resources) {
-          if (resource.resource_id === 'is.instance') {
-            const config = await getVSIConfig(token, resource.crn);
-            if (config) {
-              vsiConfigsMap[resource.crn] = config;
-            }
-          }
-        }
-        
-        allResources.push(...resources);
-      }
-
-      setResourceInstances(allResources);
-      setVsiConfigs(vsiConfigsMap);
-      console.log('Total resources loaded:', allResources.length);
-      console.log('VSI configs loaded:', Object.keys(vsiConfigsMap).length);
+      // Remove the call to getResourceGroups and related logic
+      // You may want to add your new logic here for loading resource instances
+      setResourceInstances([]);
+      setVsiConfigs({});
+      setResourceGroups([]);
+      // ...
     } catch (error) {
       console.error('Resource instances fetch error:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
@@ -305,11 +236,103 @@ function App() {
     }
   };
 
+  const fetchAllConfigs = async (token: string, configGuid: string): Promise<VSIConfig[]> => {
+    let allConfigs: VSIConfig[] = [];
+    let start: string | undefined = undefined;
+    let hasNext = true;
+
+    while (hasNext) {
+      let url = `/api/apprapp/config_aggregator/v1/instances/${configGuid}/configs?limit=100`;
+      if (start) url += `&start=${encodeURIComponent(start)}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      allConfigs = allConfigs.concat(data.configs || []);
+
+      // The IBM API typically returns a 'next' object with a 'start' property for pagination
+      if (data.next && data.next.start) {
+        start = data.next.start;
+      } else {
+        hasNext = false;
+      }
+    }
+
+    return allConfigs;
+  };
+
+  const handleLoadFromVSI = async () => {
+    if (!configGuid || !apiKey) {
+      setErrorMessage('Please enter both Config GUID and API Key');
+      return;
+    }
+    setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    try {
+      const token = await getIAMToken(apiKey);
+      const allConfigs = await fetchAllConfigs(token, configGuid);
+      console.log('API response:', allConfigs);
+      // Map configs to the table format, filtering out invalid entries
+      const mapped = (allConfigs || [])
+        .filter(cfg => cfg && cfg.config && cfg.about)
+        .map(cfg => ({
+          name: cfg.about.resource_name,
+          resource_id: cfg.config.resource_id,
+          region: cfg.about.location,
+          created_at: cfg.config.created_at,
+          crn: cfg.config.resource_id,
+          config_v2: cfg.config_v2,
+          config: cfg.config,
+          about: cfg.about
+        }));
+      setResourceInstances(mapped);
+      setSuccessMessage('All configs loaded successfully!');
+      setLastApiOutput({ configs: allConfigs });
+      // await fetch('/save-json', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ configs: allConfigs })
+      // });
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const shortenCRN = (crn: string): string => {
     if (!crn) return 'N/A';
     const parts = crn.split(':');
     if (parts.length < 7) return crn;
     return `${parts[0]}:${parts[1]}:${parts[2]}:${parts[3]}:${parts[4]}:${parts[5]}...`;
+  };
+
+  console.log(resourceInstances.map(i => i.about));
+
+  const downloadJSON = (data: any, filename: string) => {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -349,12 +372,12 @@ function App() {
             className="api-input"
           />
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <button 
-              onClick={loadFromAPI}
+            <button
+              onClick={handleLoadFromVSI}
               className="api-button"
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Load from API'}
+              {isLoading ? 'Loading...' : 'Load API'}
             </button>
           </div>
         </div>
@@ -390,57 +413,55 @@ function App() {
       </div>
       
       {resourceInstances.length > 0 && (
-        <div className="table-container" style={{ maxHeight: '480px', overflowY: 'auto', overflowX: 'auto', marginTop: 24 }}>
-          <table className="vsi-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Service Name</th>
-                <th>Resource Group</th>
-                <th>Region</th>
-                <th>Created At</th>
-                <th>Zone</th>
-                <th>Image Name</th>
-                <th>Profile</th>
-                <th>Number of Volumes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {resourceInstances
-                .filter(instance => 
-                  selectedService === 'all' 
-                    ? true 
-                    : selectedService === 'is.instance' 
-                      ? instance.resource_id === 'is.instance'
-                      : instance.resource_id === selectedService
-                )
-                .map((instance, idx) => (
-                <tr key={idx}>
-                  <td>{instance.name || 'N/A'}</td>
-                  <td>{instance.resource_id || 'N/A'}</td>
-                  <td>{instance.resource_group_name || 'N/A'}</td>
-                  <td>{instance.region_id || 'N/A'}</td>
-                  <td>{instance.created_at ? new Date(instance.created_at).toISOString().split('T')[0] : 'N/A'}</td>
-                  {instance.resource_id === 'is.instance' && vsiConfigs[instance.crn] ? (
-                    <>
-                      <td>{vsiConfigs[instance.crn]?.config_v2?.zone || 'N/A'}</td>
-                      <td>{vsiConfigs[instance.crn]?.config?.vm_image_name || 'N/A'}</td>
-                      <td>{vsiConfigs[instance.crn]?.config_v2?.profile || 'N/A'}</td>
-                      <td>{Array.isArray(vsiConfigs[instance.crn]?.config_v2?.boot_volume) ? vsiConfigs[instance.crn]?.config_v2?.boot_volume.length : 0}</td>
-                    </>
-                  ) : (
-                    <>
-                      <td>N/A</td>
-                      <td>N/A</td>
-                      <td>N/A</td>
-                      <td>N/A</td>
-                    </>
-                  )}
+        <>
+          <div style={{ margin: '16px 0', fontWeight: 500 }}>
+            {resourceInstances.filter(instance =>
+              selectedService === 'all'
+                ? true
+                : selectedService === 'is.instance'
+                  ? instance.about?.service_name === 'is.instance' && instance.about?.config_type === 'instance'
+                  : instance.about?.service_name === selectedService
+            ).length} results loaded
+          </div>
+          <div className="table-container" style={{ maxHeight: '480px', overflowY: 'auto', overflowX: 'auto', marginTop: 24 }}>
+            <table className="vsi-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Service Name</th>
+                  <th>Region</th>
+                  <th>Created At</th>
+                  <th>Zone</th>
+                  <th>Image Name</th>
+                  <th>Profile</th>
+                  <th>Number of Volumes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {resourceInstances
+                  .filter(instance =>
+                    selectedService === 'all'
+                      ? true
+                      : selectedService === 'is.instance'
+                        ? instance.about?.service_name === 'is.instance' && instance.about?.config_type === 'instance'
+                        : instance.about?.service_name === selectedService
+                  )
+                  .map((instance, idx) => (
+                  <tr key={idx}>
+                    <td>{instance.name || 'N/A'}</td>
+                    <td>{instance.resource_id || 'N/A'}</td>
+                    <td>{instance.region || 'N/A'}</td>
+                    <td>{instance.created_at ? new Date(instance.created_at).toISOString().split('T')[0] : 'N/A'}</td>
+                    <td>{instance.config_v2?.zone || 'N/A'}</td>
+                    <td>{instance.config?.vm_image_name || 'N/A'}</td>
+                    <td>{instance.config_v2?.profile || 'N/A'}</td>
+                    <td>{Array.isArray(instance.config_v2?.boot_volume) ? instance.config_v2.boot_volume.length : 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
