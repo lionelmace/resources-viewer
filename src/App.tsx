@@ -15,7 +15,6 @@ interface VSIConfig {
     vm_image_name?: string;
     vpc_id: string;
     created_at?: string;
-    resource_group_id?: string;
   };
   config_v2?: {
     zone?: string;
@@ -62,6 +61,7 @@ const serviceOptions: ServiceOption[] = [
   { value: 'containers-kubernetes', label: 'Clusters' },
   { value: 'databases-for-postgresql', label: 'ICD Postgres' },
   { value: 'databases-for-mongodb', label: 'ICD Mongo' }
+
 ];
 
 function App() {
@@ -236,9 +236,9 @@ function App() {
     }
   };
 
-  const fetchAllConfigs = async (token: string, configGuid: string): Promise<VSIConfig[]> => {
-    let allConfigs: VSIConfig[] = [];
-    let start: string | undefined = undefined;
+  const fetchAllConfigs = async (token, configGuid) => {
+    let allConfigs = [];
+    let start = undefined;
     let hasNext = true;
 
     while (hasNext) {
@@ -284,14 +284,14 @@ function App() {
     try {
       const token = await getIAMToken(apiKey);
       const allConfigs = await fetchAllConfigs(token, configGuid);
-      console.log('API response:', allConfigs);
       // Map configs to the table format, filtering out invalid entries
       const mapped = (allConfigs || [])
         .filter(cfg => cfg && cfg.config && cfg.about)
         .map(cfg => ({
           name: cfg.about.resource_name,
           resource_id: cfg.config.resource_id,
-          region: cfg.about.location,
+          resource_group_name: cfg.about.location,
+          region_id: cfg.config.vpc_id,
           created_at: cfg.config.created_at,
           crn: cfg.config.resource_id,
           config_v2: cfg.config_v2,
@@ -301,11 +301,11 @@ function App() {
       setResourceInstances(mapped);
       setSuccessMessage('All configs loaded successfully!');
       setLastApiOutput({ configs: allConfigs });
-      // await fetch('/save-json', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ configs: allConfigs })
-      // });
+      await fetch('/save-json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ configs: allConfigs })
+      });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
     } finally {
@@ -429,6 +429,7 @@ function App() {
                 <tr>
                   <th>Name</th>
                   <th>Service Name</th>
+                  <th>Resource Group</th>
                   <th>Region</th>
                   <th>Created At</th>
                   <th>Zone</th>
@@ -450,12 +451,24 @@ function App() {
                   <tr key={idx}>
                     <td>{instance.name || 'N/A'}</td>
                     <td>{instance.resource_id || 'N/A'}</td>
-                    <td>{instance.region || 'N/A'}</td>
+                    <td>{instance.resource_group_name || 'N/A'}</td>
+                    <td>{instance.region_id || 'N/A'}</td>
                     <td>{instance.created_at ? new Date(instance.created_at).toISOString().split('T')[0] : 'N/A'}</td>
-                    <td>{instance.config_v2?.zone || 'N/A'}</td>
-                    <td>{instance.config?.vm_image_name || 'N/A'}</td>
-                    <td>{instance.config_v2?.profile || 'N/A'}</td>
-                    <td>{Array.isArray(instance.config_v2?.boot_volume) ? instance.config_v2.boot_volume.length : 0}</td>
+                    {instance.resource_id === 'is.instance' && vsiConfigs[instance.crn] ? (
+                      <>
+                        <td>{vsiConfigs[instance.crn]?.config_v2?.zone || 'N/A'}</td>
+                        <td>{vsiConfigs[instance.crn]?.config?.vm_image_name || 'N/A'}</td>
+                        <td>{vsiConfigs[instance.crn]?.config_v2?.profile || 'N/A'}</td>
+                        <td>{Array.isArray(vsiConfigs[instance.crn]?.config_v2?.boot_volume) ? vsiConfigs[instance.crn]?.config_v2?.boot_volume.length : 0}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td>N/A</td>
+                        <td>N/A</td>
+                        <td>N/A</td>
+                        <td>N/A</td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
