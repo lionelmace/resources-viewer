@@ -58,10 +58,7 @@ interface VSIConfigResponse {
 const serviceOptions: ServiceOption[] = [
   { value: 'all', label: 'All resources' },
   { value: 'is.instance', label: 'VSI' },
-  { value: 'containers-kubernetes', label: 'Clusters' },
-  { value: 'databases-for-postgresql', label: 'ICD Postgres' },
-  { value: 'databases-for-mongodb', label: 'ICD Mongo' }
-
+  { value: 'containers-kubernetes', label: 'Clusters' }
 ];
 
 function App() {
@@ -335,6 +332,133 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  function renderTable() {
+    if (selectedService === 'is.instance') {
+      // VSI Table Layout
+      return (
+        <table className="vsi-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Service Name</th>
+              <th>Region</th>
+              <th>Created At</th>
+              <th>Zone</th>
+              <th>Image Name</th>
+              <th>Profile</th>
+              <th>Number of Volumes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {resourceInstances
+              .filter(instance =>
+                selectedService === 'all'
+                  ? true
+                  : selectedService === 'is.instance'
+                    ? instance.about?.service_name === 'is.instance' && instance.about?.config_type === 'instance'
+                    : instance.about?.service_name === selectedService
+              )
+              .map((instance, idx) => (
+                <tr key={idx}>
+                  <td>{instance.name || 'N/A'}</td>
+                  <td>{instance.about?.service_name || 'N/A'}</td>
+                  <td>{instance.about?.location || 'N/A'}</td>
+                  <td>
+                    {instance?.about?.last_config_refresh_time
+                      ? new Date(instance.about.last_config_refresh_time).toISOString().split('T')[0]
+                      : 'N/A'}
+                  </td>
+                  <td>{instance.config_v2 && instance.config_v2.zone ? instance.config_v2.zone : 'N/A'}</td>
+                  <td>{instance.config && instance.config.vm_image_name ? instance.config.vm_image_name : 'N/A'}</td>
+                  <td>{instance.config_v2 && instance.config_v2.profile ? instance.config_v2.profile : 'N/A'}</td>
+                  <td>{instance.config_v2 && Array.isArray(instance.config_v2.boot_volume) ? instance.config_v2.boot_volume.length : 0}</td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      );
+    } else if (selectedService === 'containers-kubernetes') {
+      // Filter for worker configs
+      const workerInstances = resourceInstances.filter(
+        instance => instance?.about?.config_type === 'worker'
+      );
+      return (
+        <table className="vsi-table">
+          <thead>
+            <tr>
+              <th>Cluster</th>
+              <th>Type</th>
+              <th>Worker</th>
+              <th>Flavor</th>
+              <th>Service</th>
+              <th>Zone</th>
+              <th>Version</th>
+              <th>OS</th>
+              <th>Last Refresh</th>
+            </tr>
+          </thead>
+          <tbody>
+            {workerInstances.map((instance, idx) => (
+              <tr key={idx}>
+                <td>{instance?.name || 'N/A'}</td>
+                <td>{instance?.about?.type || 'N/A'}</td>
+                <td>{instance?.config?.id || 'N/A'}</td>
+                <td>{instance?.config?.flavor || 'N/A'}</td>
+                <td>{instance?.about?.service_name || 'N/A'}</td>
+                <td>{instance?.about?.location || 'N/A'}</td>
+                <td>{instance?.config?.kubeVersion?.actual || 'N/A'}</td>
+                <td>{instance?.config?.lifecycle?.actualOperatingSystem || 'N/A'}</td>
+                <td>
+                  {instance?.about?.last_config_refresh_time
+                    ? new Date(instance.about.last_config_refresh_time).toISOString().split('T')[0]
+                    : 'N/A'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    } else {
+      // Default/All Table Layout
+      return (
+        <table className="vsi-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Service Name</th>
+              <th>Region</th>
+              <th>Created At</th>
+              {/* Add more columns as needed */}
+            </tr>
+          </thead>
+          <tbody>
+            {resourceInstances
+              .filter(instance =>
+                selectedService === 'all'
+                  ? true
+                  : selectedService === 'is.instance'
+                    ? instance.about?.service_name === 'is.instance' && instance.about?.config_type === 'instance'
+                    : instance.about?.service_name === selectedService
+              )
+              .map((instance, idx) => (
+                <tr key={idx}>
+                  <td>{instance.name || 'N/A'}</td>
+                  <td>{instance.about?.service_name || 'N/A'}</td>
+                  <td>{instance.about?.location || 'N/A'}</td>
+                  <td>
+                    {instance?.about?.last_config_refresh_time
+                      ? new Date(instance.about.last_config_refresh_time).toISOString().split('T')[0]
+                      : 'N/A'}
+                  </td>
+                  {/* Add more cells as needed */}
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      );
+    }
+  }
+
   return (
     <div className="app-container">
       <div className="header">
@@ -377,7 +501,7 @@ function App() {
               className="api-button"
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Load API'}
+              {isLoading ? 'Loading...' : 'Load Configs'}
             </button>
           </div>
         </div>
@@ -424,55 +548,7 @@ function App() {
             ).length} results loaded
           </div>
           <div className="table-container" style={{ maxHeight: '480px', overflowY: 'auto', overflowX: 'auto', marginTop: 24 }}>
-            <table className="vsi-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Service Name</th>
-                  <th>Resource Group</th>
-                  <th>Region</th>
-                  <th>Created At</th>
-                  <th>Zone</th>
-                  <th>Image Name</th>
-                  <th>Profile</th>
-                  <th>Number of Volumes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resourceInstances
-                  .filter(instance =>
-                    selectedService === 'all'
-                      ? true
-                      : selectedService === 'is.instance'
-                        ? instance.about?.service_name === 'is.instance' && instance.about?.config_type === 'instance'
-                        : instance.about?.service_name === selectedService
-                  )
-                  .map((instance, idx) => (
-                  <tr key={idx}>
-                    <td>{instance.name || 'N/A'}</td>
-                    <td>{instance.resource_id || 'N/A'}</td>
-                    <td>{instance.resource_group_name || 'N/A'}</td>
-                    <td>{instance.region_id || 'N/A'}</td>
-                    <td>{instance.created_at ? new Date(instance.created_at).toISOString().split('T')[0] : 'N/A'}</td>
-                    {instance.resource_id === 'is.instance' && vsiConfigs[instance.crn] ? (
-                      <>
-                        <td>{vsiConfigs[instance.crn]?.config_v2?.zone || 'N/A'}</td>
-                        <td>{vsiConfigs[instance.crn]?.config?.vm_image_name || 'N/A'}</td>
-                        <td>{vsiConfigs[instance.crn]?.config_v2?.profile || 'N/A'}</td>
-                        <td>{Array.isArray(vsiConfigs[instance.crn]?.config_v2?.boot_volume) ? vsiConfigs[instance.crn]?.config_v2?.boot_volume.length : 0}</td>
-                      </>
-                    ) : (
-                      <>
-                        <td>N/A</td>
-                        <td>N/A</td>
-                        <td>N/A</td>
-                        <td>N/A</td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {renderTable()}
           </div>
         </>
       )}

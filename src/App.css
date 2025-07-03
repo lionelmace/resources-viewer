@@ -4,27 +4,24 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
+  align-items: stretch;
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  width: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  max-width: 100vw;
 }
 
 .app-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  margin-top: 0;
-  padding-top: 0;
-  width: 100%;
-  overflow-y: auto;
+  margin: 0;
+  padding: 0 2rem;
+  width: 100vw;
+  max-width: 100vw;
 }
 
 .header {
@@ -99,6 +96,8 @@ h1 {
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100vw;
+  max-width: 100vw;
 }
 
 .vsi-table {
